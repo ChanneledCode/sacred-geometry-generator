@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sacred Geometry Generator — @ChanneledCode</title>
+<meta name="description" content="Interactive sacred geometry pattern generator. Create Flower of Life, Metatron's Cube, Sri Yantra and more. Free tool by @ChanneledCode.">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Inter', system-ui, sans-serif;
+    background: #0f0f23;
+    color: #e8e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 14px 24px;
+    border-bottom: 1px solid #1a1a3e;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0a0a1a;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+  header span { color: #6c63ff; }
+  header a { margin-left: auto; color: #555; font-size: 12px; text-decoration: none; }
+  header a:hover { color: #6c63ff; }
+
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: #0a0a1a;
+    border-right: 1px solid #1a1a3e;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 20px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .pat-btn {
+    background: #1a1a3e;
+    border: 1px solid #2a2a5e;
+    color: #aaa;
+    padding: 8px 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: center;
+    transition: all 0.15s;
+    line-height: 1.3;
+  }
+  .pat-btn:hover { border-color: #6c63ff88; color: #e8e8f0; }
+  .pat-btn.active {
+    background: #6c63ff22;
+    border-color: #6c63ff;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .pat-desc {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+    min-height: 32px;
+  }
+
+  .control-row { display: flex; flex-direction: column; gap: 4px; }
+  .control-row label {
+    font-size: 11px;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+  }
+  .control-row label span { color: #6c63ff; font-weight: 600; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #2a2a5e;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: #6c63ff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  input[type=range]:disabled { opacity: 0.3; }
+
+  .color-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .color-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .color-picker label { font-size: 11px; color: #888; }
+  input[type=color] {
+    width: 100%;
+    height: 32px;
+    border: 1px solid #2a2a5e;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #888;
+  }
+  .toggle {
+    width: 36px; height: 20px;
+    background: #2a2a5e;
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: none;
+  }
+  .toggle.on { background: #6c63ff; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 19px; }
+
+  .export-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .btn {
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-primary { background: #6c63ff; color: #fff; }
+  .btn-primary:hover { background: #5a52e0; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid #6c63ff;
+    color: #6c63ff;
+  }
+  .btn-outline:hover { background: #6c63ff22; }
+  .btn-ghost {
+    background: #1a1a3e;
+    color: #aaa;
+    border: 1px solid #2a2a5e;
+  }
+  .btn-ghost:hover { color: #fff; border-color: #555; }
+
+  .cta-block {
+    margin-top: auto;
+    padding: 14px;
+    background: #1a1a3e;
+    border: 1px solid #6c63ff44;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .cta-block p { font-size: 11px; color: #888; margin-bottom: 10px; line-height: 1.5; }
+  .cta-block p strong { color: #e8e8f0; }
+  .cta-block a {
+    display: block;
+    padding: 8px;
+    border: 1px solid #6c63ff;
+    border-radius: 6px;
+    color: #6c63ff;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .cta-block a:hover { background: #6c63ff; color: #fff; }
+
+  /* CANVAS */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f0f23;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  #svg-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #main-svg {
+    max-width: 100%;
+    max-height: 100%;
+    transition: opacity 0.3s;
+    border-radius: 4px;
+  }
+  #main-svg.fade { opacity: 0; }
+
+  footer {
+    padding: 10px 24px;
+    border-top: 1px solid #1a1a3e;
+    font-size: 11px;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  footer a { color: #555; text-decoration: none; }
+  footer a:hover { color: #6c63ff; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #1a1a3e; }
+    .canvas-area { min-height: 50vh; }
+  }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #6c63ff; color: #fff;
+    padding: 10px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" stroke="#6c63ff" stroke-width="1.5"/>
+    <circle cx="8" cy="12" r="4" stroke="#6c63ff" stroke-width="1.5" opacity="0.6"/>
+    <circle cx="16" cy="12" r="4" stroke="#6c63ff" stroke-width="1.5" opacity="0.6"/>
+  </svg>
+  <h1>Sacred Geometry <span>Generator</span></h1>
+  <a href="https://github.com/ChanneledCode/sacred-geometry-generator" target="_blank">⭐ GitHub</a>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-label">Pattern</div>
+      <div class="pattern-grid" id="pattern-btns"></div>
+      <div class="pat-desc" id="pat-desc" style="margin-top:10px"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Controls</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div class="control-row">
+          <label>Scale <span id="scale-val">100%</span></label>
+          <input type="range" id="scale" min="20" max="200" value="100">
+        </div>
+
+        <div class="control-row">
+          <label>Complexity <span id="complexity-val">3</span></label>
+          <input type="range" id="complexity" min="1" max="6" value="3">
+        </div>
+
+        <div class="control-row">
+          <label>Line Width <span id="lw-val">1.5</span></label>
+          <input type="range" id="line-width" min="5" max="40" value="15" step="1">
+        </div>
+
+        <div class="color-row">
+          <div class="color-picker">
+            <label>Line Color</label>
+            <input type="color" id="line-color" value="#6c63ff">
+          </div>
+          <div class="color-picker">
+            <label>Background</label>
+            <input type="color" id="bg-color" value="#0f0f23">
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <span>Show Labels</span>
+          <button class="toggle" id="label-toggle" aria-label="Toggle labels"></button>
+        </div>
+
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Export</div>
+      <div class="export-btns">
+        <button class="btn btn-primary" onclick="downloadSVG()">↓ Download SVG</button>
+        <button class="btn btn-outline" onclick="downloadPNG()">↓ Download PNG</button>
+        <button class="btn btn-ghost" onclick="copyEmbed()">⎘ Copy Embed Code</button>
+      </div>
+    </div>
+
+    <div class="cta-block">
+      <p><strong>Love this pattern?</strong><br>Get it as a museum-quality archival print — giclée on fine art paper.</p>
+      <a href="https://mysticmasterpieces.com" target="_blank">Shop Prints → mysticmasterpieces.com</a>
+    </div>
+
+  </aside>
+
+  <main class="canvas-area">
+    <div id="svg-container">
+      <svg id="main-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <span>Free tool by <a href="https://x.com/ChanneledCode" target="_blank">@ChanneledCode</a></span>
+  <a href="https://github.com/ChanneledCode/sacred-geometry-generator" target="_blank">github.com/ChanneledCode/sacred-geometry-generator</a>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+const state = {
+  pattern: 'flower',
+  scale: 1,
+  complexity: 3,
+  lineWidth: 1.5,
+  lineColor: '#6c63ff',
+  bgColor: '#0f0f23',
+  labels: false,
+};
+
+// ─── Patterns ─────────────────────────────────────────────────────────────────
+const PATTERNS = [
+  { id: 'flower',   label: 'Flower of Life', desc: 'The template of creation — overlapping circles encoding all platonic solids.' },
+  { id: 'seed',     label: 'Seed of Life',   desc: 'Seven circles forming the genesis pattern — the first day of creation.' },
+  { id: 'metatron', label: "Metatron's Cube", desc: 'All 13 circles of the Fruit of Life connected — containing every platonic solid.' },
+  { id: 'vesica',   label: 'Vesica Piscis',  desc: 'Two overlapping circles. The ratio of width to height is √3 — the womb of geometry.' },
+  { id: 'spiral',   label: 'Golden Spiral',  desc: 'The Fibonacci sequence made visible — the growth pattern of living systems.' },
+  { id: 'yantra',   label: 'Sri Yantra',     desc: 'Nine interlocking triangles. The most complex symmetrical yantra in Tantric tradition.' },
+];
+
+const COMPLEXITY_LOCK = { vesica: true, yantra: true };
+
+// ─── SVG helpers ─────────────────────────────────────────────────────────────
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 300, CY = 300; // canvas center
+
+function el(tag, attrs = {}) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+function circle(cx, cy, r, extra = {}) {
+  return el('circle', { cx, cy, r, fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth, ...extra });
+}
+
+function line(x1, y1, x2, y2, extra = {}) {
+  return el('line', { x1, y1, x2, y2, stroke: state.lineColor, 'stroke-width': state.lineWidth, ...extra });
+}
+
+function polygon(points, extra = {}) {
+  return el('polygon', { points: points.map(([x, y]) => `${x},${y}`).join(' '), fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth, ...extra });
+}
+
+function pathD(d, extra = {}) {
+  return el('path', { d, fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth, ...extra });
+}
+
+function label(x, y, text) {
+  if (!state.labels) return null;
+  const t = el('text', { x, y, 'text-anchor': 'middle', fill: state.lineColor, 'font-size': '9', 'font-family': 'system-ui', opacity: '0.6' });
+  t.textContent = text;
+  return t;
+}
+
+// ─── Pattern Generators ───────────────────────────────────────────────────────
+
+function drawFlower(g) {
+  const R = 60 * state.scale;
+  const rings = state.complexity;
+  const centers = hexCenters(CX, CY, R, rings);
+  for (const [cx, cy] of centers) {
+    g.appendChild(circle(cx, cy, R));
+  }
+  if (state.labels) g.appendChild(label(CX, CY - R - 6, 'Flower of Life'));
+}
+
+function drawSeed(g) {
+  const R = 70 * state.scale;
+  const centers = [[CX, CY]];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i;
+    centers.push([CX + R * Math.cos(a), CY + R * Math.sin(a)]);
+  }
+  for (const [cx, cy] of centers) {
+    g.appendChild(circle(cx, cy, R));
+  }
+  if (state.labels) g.appendChild(label(CX, CY - R - 6, 'Seed of Life'));
+}
+
+function drawMetatron(g) {
+  const R = 55 * state.scale;
+  // Fruit of Life: 13 circles
+  const inner = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i;
+    inner.push([CX + R * Math.cos(a), CY + R * Math.sin(a)]);
+  }
+  const outer = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i + Math.PI / 6;
+    outer.push([CX + 2 * R * Math.cos(a), CY + 2 * R * Math.sin(a)]);
+  }
+  const allCenters = [[CX, CY], ...inner, ...outer];
+
+  // Draw small circles at each center
+  for (const [cx, cy] of allCenters) {
+    g.appendChild(circle(cx, cy, R * 0.12));
+  }
+  // Draw large circles: center + inner ring only (Fruit of Life)
+  for (const [cx, cy] of [[CX, CY], ...inner]) {
+    g.appendChild(circle(cx, cy, R, { opacity: '0.35' }));
+  }
+  // Connect all pairs
+  for (let i = 0; i < allCenters.length; i++) {
+    for (let j = i + 1; j < allCenters.length; j++) {
+      const [x1, y1] = allCenters[i];
+      const [x2, y2] = allCenters[j];
+      g.appendChild(line(x1, y1, x2, y2, { opacity: '0.5' }));
+    }
+  }
+  if (state.labels) g.appendChild(label(CX, CY - 2.2 * R - 6, "Metatron's Cube"));
+}
+
+function drawVesica(g) {
+  const R = 100 * state.scale;
+  const offset = R / 2;
+  g.appendChild(circle(CX - offset, CY, R));
+  g.appendChild(circle(CX + offset, CY, R));
+  // Vesica intersection lines
+  const h = Math.sqrt(3) * offset;
+  g.appendChild(line(CX, CY - h, CX, CY + h, { 'stroke-dasharray': '4 4', opacity: '0.4' }));
+  g.appendChild(line(CX - offset, CY, CX + offset, CY, { 'stroke-dasharray': '4 4', opacity: '0.4' }));
+  if (state.labels) {
+    g.appendChild(label(CX - offset, CY - R - 8, ''));
+    g.appendChild(label(CX, CY - R - 8, 'Vesica Piscis'));
+  }
+}
+
+function drawSpiral(g) {
+  const maxN = state.complexity + 5;
+  let fibs = [1, 1];
+  for (let i = 2; i < maxN; i++) fibs.push(fibs[i-1] + fibs[i-2]);
+
+  const baseR = 8 * state.scale;
+  let x = CX, y = CY;
+  let dir = 0; // 0=right,1=down,2=left,3=up
+
+  const squares = [];
+  const dx = [1, 0, -1, 0];
+  const dy = [0, 1, 0, -1];
+
+  for (let i = 0; i < fibs.length; i++) {
+    const s = fibs[i] * baseR;
+    squares.push({ x, y, s, dir, f: fibs[i] });
+    x += dx[dir] * s;
+    y += dy[dir] * s;
+    dir = (dir + 1) % 4;
+  }
+
+  // Draw rectangles
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const sq of squares) {
+    const rx = sq.dir === 2 ? sq.x - sq.s : sq.x;
+    const ry = sq.dir === 3 ? sq.y - sq.s : sq.y;
+    minX = Math.min(minX, rx); minY = Math.min(minY, ry);
+    maxX = Math.max(maxX, rx + sq.s); maxY = Math.max(maxY, ry + sq.s);
+  }
+  const offX = CX - (minX + maxX) / 2;
+  const offY = CY - (minY + maxY) / 2;
+
+  // Draw arcs
+  let pts = [];
+  let px = CX + offX, py = CY + offY;
+  for (const sq of squares) {
+    const cx_ = sq.x + offX;
+    const cy_ = sq.y + offY;
+    const arcs = [
+      [cx_, cy_, sq.s, 1, 0],
+      [cx_ + sq.s, cy_, sq.s, 0, 1],
+      [cx_ + sq.s, cy_ + sq.s, sq.s, 1, 1],
+      [cx_, cy_ + sq.s, sq.s, 0, 0],
+    ];
+    const [arcX, arcY, arcR, sx, sy] = arcs[sq.dir];
+    g.appendChild(el('path', {
+      d: `M ${px} ${py} A ${arcR} ${arcR} 0 0 ${sq.dir < 2 ? 1 : 0} ${arcX + (sx?arcR:-arcR)} ${arcY + (sy?arcR:-arcR)}`,
+      fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth,
+    }));
+    px = arcX + (sx?arcR:-arcR);
+    py = arcY + (sy?arcR:-arcR);
+  }
+
+  if (state.labels) g.appendChild(label(CX, CY - 200 * state.scale - 8, 'Golden Spiral'));
+}
+
+function drawYantra(g) {
+  const R = 140 * state.scale;
+  // Sri Yantra: simplified — 4 upward + 5 downward triangles in concentric pattern
+  const triangles = [];
+  const levels = [0.95, 0.80, 0.65, 0.50, 0.38, 0.26, 0.15, 0.08, 0.035];
+
+  levels.forEach((r, i) => {
+    const rad = R * r;
+    const up = i % 2 === 0;
+    const pts = [];
+    for (let j = 0; j < 3; j++) {
+      const a = (2 * Math.PI / 3) * j + (up ? -Math.PI / 2 : Math.PI / 2);
+      pts.push([CX + rad * Math.cos(a), CY + rad * Math.sin(a)]);
+    }
+    g.appendChild(polygon(pts));
+  });
+
+  // Outer circles
+  g.appendChild(circle(CX, CY, R, { opacity: '0.4' }));
+  g.appendChild(circle(CX, CY, R * 0.97, { opacity: '0.2' }));
+
+  // Lotus petals (outer ring)
+  for (let i = 0; i < 16; i++) {
+    const a = (2 * Math.PI / 16) * i;
+    const petalR = R * 0.12;
+    const petalCX = CX + (R * 1.0) * Math.cos(a);
+    const petalCY = CY + (R * 1.0) * Math.sin(a);
+    g.appendChild(el('ellipse', {
+      cx: petalCX, cy: petalCY,
+      rx: petalR * 0.4, ry: petalR,
+      transform: `rotate(${(180 / Math.PI) * a + 90} ${petalCX} ${petalCY})`,
+      fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth * 0.7, opacity: '0.5',
+    }));
+  }
+
+  // Bindu
+  g.appendChild(circle(CX, CY, R * 0.018, { fill: state.lineColor }));
+  if (state.labels) g.appendChild(label(CX, CY - R - 12, 'Sri Yantra'));
+}
+
+// ─── Hex grid helper ──────────────────────────────────────────────────────────
+function hexCenters(cx, cy, R, rings) {
+  const pts = new Map();
+  const key = (x, y) => `${Math.round(x)},${Math.round(y)}`;
+  pts.set(key(cx, cy), [cx, cy]);
+  for (let ring = 1; ring <= rings; ring++) {
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i;
+      for (let j = 0; j < ring; j++) {
+        const x = cx + ring * R * Math.cos(a) + j * R * Math.cos(a + 2 * Math.PI / 3);
+        const y = cy + ring * R * Math.sin(a) + j * R * Math.sin(a + 2 * Math.PI / 3);
+        pts.set(key(x, y), [x, y]);
+      }
+    }
+  }
+  return [...pts.values()];
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const svg = document.getElementById('main-svg');
+  svg.classList.add('fade');
+
+  setTimeout(() => {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    // Background
+    svg.appendChild(el('rect', { width: 600, height: 600, fill: state.bgColor }));
+
+    const g = el('g');
+    svg.appendChild(g);
+
+    switch (state.pattern) {
+      case 'flower':   drawFlower(g);   break;
+      case 'seed':     drawSeed(g);     break;
+      case 'metatron': drawMetatron(g); break;
+      case 'vesica':   drawVesica(g);   break;
+      case 'spiral':   drawSpiral(g);   break;
+      case 'yantra':   drawYantra(g);   break;
+    }
+
+    svg.classList.remove('fade');
+  }, 150);
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function buildPatternButtons() {
+  const container = document.getElementById('pattern-btns');
+  for (const p of PATTERNS) {
+    const btn = document.createElement('button');
+    btn.className = 'pat-btn' + (p.id === state.pattern ? ' active' : '');
+    btn.textContent = p.label;
+    btn.dataset.id = p.id;
+    btn.addEventListener('click', () => {
+      state.pattern = p.id;
+      document.querySelectorAll('.pat-btn').forEach(b => b.classList.toggle('active', b.dataset.id === p.id));
+      document.getElementById('pat-desc').textContent = p.desc;
+      // Lock complexity for fixed patterns
+      document.getElementById('complexity').disabled = !!COMPLEXITY_LOCK[p.id];
+      render();
+    });
+    container.appendChild(btn);
+  }
+  document.getElementById('pat-desc').textContent = PATTERNS[0].desc;
+}
+
+function bindControls() {
+  const scale = document.getElementById('scale');
+  scale.addEventListener('input', () => {
+    state.scale = scale.value / 100;
+    document.getElementById('scale-val').textContent = scale.value + '%';
+    render();
+  });
+
+  const complexity = document.getElementById('complexity');
+  complexity.addEventListener('input', () => {
+    state.complexity = +complexity.value;
+    document.getElementById('complexity-val').textContent = complexity.value;
+    render();
+  });
+
+  const lw = document.getElementById('line-width');
+  lw.addEventListener('input', () => {
+    state.lineWidth = lw.value / 10;
+    document.getElementById('lw-val').textContent = state.lineWidth.toFixed(1);
+    render();
+  });
+
+  document.getElementById('line-color').addEventListener('input', e => {
+    state.lineColor = e.target.value;
+    render();
+  });
+
+  document.getElementById('bg-color').addEventListener('input', e => {
+    state.bgColor = e.target.value;
+    render();
+  });
+
+  const toggle = document.getElementById('label-toggle');
+  toggle.addEventListener('click', () => {
+    state.labels = !state.labels;
+    toggle.classList.toggle('on', state.labels);
+    render();
+  });
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function getSVGString() {
+  const svg = document.getElementById('main-svg').cloneNode(true);
+  svg.setAttribute('xmlns', NS);
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
+}
+
+function downloadSVG() {
+  const blob = new Blob([getSVGString()], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `sacred-geometry-${state.pattern}.svg`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('SVG downloaded!');
+}
+
+function downloadPNG() {
+  const svgStr = getSVGString();
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1200;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, 1200, 1200);
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `sacred-geometry-${state.pattern}.png`;
+      a.click(); URL.revokeObjectURL(url);
+      toast('PNG downloaded! (1200×1200)');
+    });
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+function copyEmbed() {
+  const svg = document.getElementById('main-svg').cloneNode(true);
+  svg.setAttribute('xmlns', NS);
+  navigator.clipboard.writeText(svg.outerHTML).then(() => toast('Embed code copied!')).catch(() => {
+    prompt('Copy this:', svg.outerHTML);
+  });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildPatternButtons();
+bindControls();
+render();
+</script>
+</body>
+</html>
