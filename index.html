@@ -497,59 +497,84 @@ function drawVesica(g) {
 }
 
 function drawSpiral(g) {
-  const maxN = state.complexity + 5;
-  let fibs = [1, 1];
-  for (let i = 2; i < maxN; i++) fibs.push(fibs[i-1] + fibs[i-2]);
+  // True golden spiral: r = a·e^(bθ), where b = ln(φ)/(π/2)
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const b = Math.log(phi) / (Math.PI / 2); // each quarter-turn scales by φ
 
-  const baseR = 8 * state.scale;
-  let x = CX, y = CY;
-  let dir = 0; // 0=right,1=down,2=left,3=up
+  const turns = state.complexity + 1;
+  const maxTheta = turns * 2 * Math.PI;
+  const maxR = 240 * state.scale;
+  const a = maxR / Math.exp(b * maxTheta); // scale so outermost point fits
 
-  const squares = [];
-  const dx = [1, 0, -1, 0];
-  const dy = [0, 1, 0, -1];
+  // --- Fibonacci rectangles (faint reference grid) ---
+  const fibs = [1, 1];
+  const nSq = Math.min(turns * 2 + 2, 12);
+  for (let i = 2; i < nSq; i++) fibs.push(fibs[i-1] + fibs[i-2]);
 
-  for (let i = 0; i < fibs.length; i++) {
-    const s = fibs[i] * baseR;
-    squares.push({ x, y, s, dir, f: fibs[i] });
-    x += dx[dir] * s;
-    y += dy[dir] * s;
-    dir = (dir + 1) % 4;
+  // Place squares using bounding box method
+  let bx1 = 0, by1 = 0, bx2 = fibs[0], by2 = fibs[0];
+  const sqs = [{x: 0, y: 0, s: fibs[0]}];
+  for (let i = 1; i < fibs.length; i++) {
+    const s = fibs[i];
+    const dir = (i - 1) % 4;
+    let sx, sy;
+    if      (dir === 0) { sx = bx2;     sy = by1; }       // right
+    else if (dir === 1) { sx = bx1;     sy = by1 - s; }   // up (screen: -y)
+    else if (dir === 2) { sx = bx1 - s; sy = by2 - s; }   // left
+    else                { sx = bx2 - s; sy = by2; }        // down
+    sqs.push({x: sx, y: sy, s});
+    bx1 = Math.min(bx1, sx); by1 = Math.min(by1, sy);
+    bx2 = Math.max(bx2, sx + s); by2 = Math.max(by2, sy + s);
   }
 
-  // Draw rectangles
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const sq of squares) {
-    const rx = sq.dir === 2 ? sq.x - sq.s : sq.x;
-    const ry = sq.dir === 3 ? sq.y - sq.s : sq.y;
-    minX = Math.min(minX, rx); minY = Math.min(minY, ry);
-    maxX = Math.max(maxX, rx + sq.s); maxY = Math.max(maxY, ry + sq.s);
-  }
-  const offX = CX - (minX + maxX) / 2;
-  const offY = CY - (minY + maxY) / 2;
+  // Scale unit squares to match the spiral's scale, then center
+  const totalFib = fibs[fibs.length - 1];
+  const sqScale = maxR * 2 / totalFib / 1.1;
+  const sqOffX = CX - ((bx1 + bx2) / 2) * sqScale;
+  const sqOffY = CY - ((by1 + by2) / 2) * sqScale;
 
-  // Draw arcs
-  let pts = [];
-  let px = CX + offX, py = CY + offY;
-  for (const sq of squares) {
-    const cx_ = sq.x + offX;
-    const cy_ = sq.y + offY;
-    const arcs = [
-      [cx_, cy_, sq.s, 1, 0],
-      [cx_ + sq.s, cy_, sq.s, 0, 1],
-      [cx_ + sq.s, cy_ + sq.s, sq.s, 1, 1],
-      [cx_, cy_ + sq.s, sq.s, 0, 0],
-    ];
-    const [arcX, arcY, arcR, sx, sy] = arcs[sq.dir];
-    g.appendChild(el('path', {
-      d: `M ${px} ${py} A ${arcR} ${arcR} 0 0 ${sq.dir < 2 ? 1 : 0} ${arcX + (sx?arcR:-arcR)} ${arcY + (sy?arcR:-arcR)}`,
-      fill: 'none', stroke: state.lineColor, 'stroke-width': state.lineWidth,
+  for (const sq of sqs) {
+    g.appendChild(el('rect', {
+      x: sq.x * sqScale + sqOffX,
+      y: sq.y * sqScale + sqOffY,
+      width:  sq.s * sqScale,
+      height: sq.s * sqScale,
+      fill: 'none',
+      stroke: state.lineColor,
+      'stroke-width': state.lineWidth * 0.3,
+      opacity: '0.18',
     }));
-    px = arcX + (sx?arcR:-arcR);
-    py = arcY + (sy?arcR:-arcR);
   }
 
-  if (state.labels) g.appendChild(label(CX, CY - 200 * state.scale - 8, 'Golden Spiral'));
+  // --- Golden spiral path (smooth, mathematically correct) ---
+  const steps = 800;
+  let d = '';
+  for (let i = 0; i <= steps; i++) {
+    const theta = (i / steps) * maxTheta;
+    const r = a * Math.exp(b * theta);
+    const px = CX + r * Math.cos(theta + Math.PI); // start pointing left
+    const py = CY + r * Math.sin(theta + Math.PI);
+    d += i === 0 ? `M ${px.toFixed(2)} ${py.toFixed(2)}` : ` L ${px.toFixed(2)} ${py.toFixed(2)}`;
+  }
+  g.appendChild(pathD(d));
+
+  // Quarter-turn markers (where φ scaling points sit)
+  for (let i = 0; i <= turns * 4; i++) {
+    const theta = i * (Math.PI / 2);
+    if (theta > maxTheta) break;
+    const r = a * Math.exp(b * theta);
+    const px = CX + r * Math.cos(theta + Math.PI);
+    const py = CY + r * Math.sin(theta + Math.PI);
+    g.appendChild(el('circle', {
+      cx: px, cy: py, r: Math.max(2, state.lineWidth * 1.2),
+      fill: state.lineColor, stroke: 'none', opacity: '0.55',
+    }));
+  }
+
+  // Center dot
+  g.appendChild(el('circle', { cx: CX, cy: CY, r: state.lineWidth * 0.8, fill: state.lineColor, stroke: 'none', opacity: '0.4' }));
+
+  if (state.labels) g.appendChild(label(CX, CY - maxR - 10, 'Golden Spiral (φ)'));
 }
 
 function drawYantra(g) {
